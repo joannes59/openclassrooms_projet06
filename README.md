@@ -23,6 +23,47 @@ L'enjeu consiste à prédire la probabilité de défaut de paiement d'un client.
 
 ---
 
+## ⚙️ Installation
+
+### Prérequis
+
+1. **UV (gestionnaire de paquets Python)**
+   - Documentation officielle : https://docs.astral.sh/uv/
+   - Installation rapide :
+   ```bash
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
+
+2. **Miniconda (alternative pour projets MLflow)**
+   - Documentation : https://docs.conda.io/en/latest/miniconda.html
+   - Recommandé pour les environnements MLflow complexes
+
+### Configuration du projet
+
+Les dépendances sont définies dans `pyproject.toml`. Le projet utilise automatiquement UV pour gérer l'environnement virtuel.
+
+---
+
+## 🚀 Utilisation
+
+### Démarrage des serveurs
+
+#### Serveur MLflow
+Lance le serveur de tracking MLflow pour suivre vos expérimentations :
+```bash
+./start_mlflow.sh
+```
+Le serveur sera accessible sur http://localhost:5000
+
+#### Jupyter Notebook
+Démarre Jupyter Notebook pour l'analyse exploratoire :
+```bash
+./start_jupyter.sh
+```
+Les notebooks s'ouvriront dans le dossier `notebooks/`
+
+---
+
 ## 🏗️ Structure du Projet
 ```text
 ├── data/               # Datasets de scoring (train/test)
