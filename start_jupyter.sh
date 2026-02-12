@@ -37,4 +37,4 @@ echo "Le notebook sera accessible dans votre navigateur"
 echo "Appuyez sur Ctrl+C pour arrêter Jupyter"
 echo ""
 
-uv run jupyter notebook notebooks/
+uv run jupyter notebook --ip 0.0.0.0
