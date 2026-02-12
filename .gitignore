@@ -1,3 +1,11 @@
+# dataset
+data/raw/*.csv
+data/processed/*.csv
+
+# mlflow data
+mlruns/
+mlflow.db
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

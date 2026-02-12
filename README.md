@@ -60,13 +60,15 @@ Démarre Jupyter Notebook pour l'analyse exploratoire :
 ```bash
 ./start_jupyter.sh
 ```
-Les notebooks s'ouvriront dans le dossier `notebooks/`
+Les notebooks sont accessible sur http://localhost:8889
 
 ---
 
 ## 🏗️ Structure du Projet
 ```text
-├── data/               # Datasets de scoring (train/test)
+├── data/               # Données du projet
+│   ├── raw/           # Données brutes non traitées
+│   └── processed/     # Données nettoyées et prêtes pour le pipeline
 ├── notebooks/          # EDA (Analyse Exploratoire) et prototypage
 ├── src/                # Code source : préparation des données et scripts d'entraînement
 ├── requirements.txt    # Dépendances du projet
