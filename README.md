@@ -60,16 +60,31 @@ Démarre Jupyter Notebook pour l'analyse exploratoire :
 ```bash
 ./start_jupyter.sh
 ```
-Les notebooks sont accessible sur http://localhost:8889
+Les notebooks sont accessible sur http://localhost:8888
+
+> **Note de sécurité :** Ce projet étant un démonstrateur, les connexions aux serveurs MLflow et Jupyter ne disposent d'aucune authentification ni sécurité renforcée. Ne l'utilisez pas en environnement de production.
 
 ---
 
 ## 🏗️ Structure du Projet
+
+### Structure des données
+Par défaut, les données sont stockées dans le répertoire utilisateur :
 ```text
-├── data/               # Données du projet
-│   ├── raw/           # Données brutes non traitées
-│   └── processed/     # Données nettoyées et prêtes pour le pipeline
+~/data/               # Données du projet
+├── raw/             # Données brutes non traitées
+└── processed/       # Données nettoyées et prêtes pour le pipeline
+```
+
+### Structure du code source
+```text
 ├── notebooks/          # EDA (Analyse Exploratoire) et prototypage
 ├── src/                # Code source : préparation des données et scripts d'entraînement
 ├── requirements.txt    # Dépendances du projet
 └── README.md           # Documentation du projet
+```
+
+> **Configuration des chemins :** Les chemins vers les données peuvent être personnalisés lors du lancement du serveur MLflow en utilisant l'argument `--data-path` :
+> ```bash
+> ./start_mlflow.sh /chemin/vers/vos/données
+> ```

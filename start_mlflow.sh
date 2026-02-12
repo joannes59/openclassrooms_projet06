@@ -3,6 +3,15 @@
 # Script pour lancer le serveur MLflow avec l'environnement UV
 # Utilisation: ./start_mlflow.sh
 
+# Si un argument est passé → on l’utilise
+# Sinon → valeur par défaut = $HOME/data
+DATA_DIR="${1:-$HOME/data}"
+
+# Création des dossiers nécessaires
+mkdir -p "$DATA_DIR/mlflow/mlruns"
+
+echo "Répertoire utilisé : $DATA_DIR"
+
 echo "🚀 Démarrage du serveur MLflow..."
 
 # Vérifier que UV est installé (vérifier plusieurs chemins possibles)
@@ -32,9 +41,6 @@ else
 fi
 
 
-# Créer le répertoire pour les artefacts MLflow s'il n'existe pas
-mkdir -p mlruns
-
 # Démarrer le serveur MLflow
 echo "🌐 Démarrage du serveur MLflow sur http://localhost:5000"
 echo "Appuyez sur Ctrl+C pour arrêter le serveur"
@@ -43,5 +49,6 @@ echo ""
 uv run mlflow server \
     --host 0.0.0.0 \
     --port 5000 \
-    --default-artifact-root ./mlruns \
-    --backend-store-uri sqlite:///mlflow.db
+    --default-artifact-root "$DATA_DIR/mlflow/mlruns" \
+    --backend-store-uri "sqlite:///$DATA_DIR/mlflow/mlflow.db"
+    
