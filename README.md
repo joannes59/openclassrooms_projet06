@@ -80,20 +80,28 @@ Par défaut, les données sont stockées dans le répertoire utilisateur :
 ```text
 ├── main.py                     # Point d'entrée principal de l'application
 ├── notebooks/                  # EDA (Analyse Exploratoire) et prototypage
-│   └── Initiez-vous au MLOps 1.ipynb
-├── src/                        # Code source : préparation des données et scripts d'entraînement
+│   ├── Initiez-vous au MLOps 1.ipynb
+│   └── dataframes_fields_analyse.xlsx
+├── src/                        # Code source
 │   ├── data/                   # Scripts de traitement des données
 │   │   └── preprocess.py
 │   ├── features/               # Construction de pipelines
 │   │   └── build_pipeline.py
 │   ├── training/               # Scripts d'entraînement des modèles
 │   │   └── train.py
+│   ├── inference/              # Scripts d'inférence (à implémenter)
+│   └── mlflow/                 # Scripts et configuration MLflow
+│       ├── check_mlflow.py     # Vérification du serveur MLflow via API REST
+│       ├── MLproject           # Configuration MLproject pour mlflow run
+│       └── conda.yaml           # Environnement Conda pour les runs MLflow
 ├── start_mlflow.sh             # Script de démarrage du serveur MLflow
 ├── start_jupyter.sh            # Script de démarrage de Jupyter Notebook
 ├── pyproject.toml              # Configuration des dépendances et du projet
 ├── uv.lock                     # Fichier de verrouillage des dépendances UV
+├── requirement.txt             # Dépendances Python (alternative)
 ├── .python-version             # Version Python utilisée
 ├── .gitignore                  # Fichiers ignorés par Git
+├── LICENSE                     # Licence du projet
 └── README.md                   # Documentation du projet
 ```
 
