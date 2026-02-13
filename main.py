@@ -14,7 +14,7 @@ def main():
     # configuration des parametres de connection et des repertoires de travail
     MLFLOW_URL = "http://localhost:5000"
     DATA_DIR = str(Path.home() / "data")
-    EXPERIMENT_NAME = "Projet 06 - OpenClassrooms"
+    EXPERIMENT_NAME = "Projet 06 - OpenClassrooms V2"
     
     # répertoire de l'entrée mlflow
     cwd = Path.cwd()

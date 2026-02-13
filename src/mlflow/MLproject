@@ -1,0 +1,16 @@
+name: check_mlflow
+
+conda_env: conda.yaml
+
+entry_points:
+  check:
+    parameters:
+      mlflow_url: {type: string, default: "http://localhost:5000"}
+      data_dir: {type: string, default: "~/data"}
+      experiment_name: {type: string, default: "Projet 06 - OpenClassrooms"}
+      
+    command: >
+      python check_mlflow.py 
+      --mlflow_url {mlflow_url} 
+      --data_dir {data_dir} 
+      --experiment_name {experiment_name}
