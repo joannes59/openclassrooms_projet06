@@ -175,14 +175,11 @@ def main():
 
     # Log via REST API
     run_id = create_run(mlflow_url, experiment_name)
-    print("--------run_id----------", run_id)
+
     log_param(mlflow_url, run_id, "mlflow_url", mlflow_url)
     log_param(mlflow_url, run_id, "data_dir", str(data_dir))
     log_param(mlflow_url, run_id, "experiment_name", experiment_name)
     log_param(mlflow_url, run_id, "data_exists", str(data_dir.exists()))
-
-    if raw_files:
-        log_metric(mlflow_url, run_id, "raw_files_count", len(raw_files))
 
     end_run(mlflow_url, run_id, "FINISHED")
 
