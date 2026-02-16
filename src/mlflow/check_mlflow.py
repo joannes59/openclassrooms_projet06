@@ -153,15 +153,8 @@ def main():
                 },
                 indent=2,
             )
-
-            with tempfile.NamedTemporaryFile(
-                mode="w", suffix=".json", delete=False
-            ) as f:
-                f.write(artifact_content)
-                client.log_artifact(run_id, f.name, artifact_path="data_files")
                 
             client.log_text(run_id, artifact_content, "data_files/config.json")
-            #Path(f.name).unlink()
 
     client.set_terminated(run_id, status="FINISHED")
     logging.info(f"Run terminé: {run_id}")
