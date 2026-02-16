@@ -10,7 +10,7 @@ entry_points:
       experiment_name: {type: string, default: "Projet 06 - OpenClassrooms"}
       
     command: >
-      python check_mlflow.py 
+      python check_mlflow_v2.py 
       --mlflow_url {mlflow_url} 
       --data_dir {data_dir} 
       --experiment_name {experiment_name}

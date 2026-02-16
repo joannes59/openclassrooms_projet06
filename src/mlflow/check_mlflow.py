@@ -1,106 +1,28 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Thu Feb 12 17:35:07 2026
+Created on Thu Feb 13 2026
+Version 2 - Vérification du serveur MLflow via MLflowClient
 
 @author: joannes
 """
 
 import argparse
 import sys
-import requests
+import tempfile
 import logging
 from pathlib import Path
 import json
+from mlflow import MlflowClient
 
 MLFLOW_URL = "http://localhost:5000"
 DATA_DIR = str(Path.home() / "data")
 EXPERIMENT_NAME = "Projet 06 - OpenClassrooms"
 
 
-def get_or_create_experiment(mlflow_url: str, experiment_name: str) -> str:
-    """Récupère ou crée une expérience et retourne l'experiment_id."""
-    # Cherche l'expérience par nom
-    resp = requests.post(
-        f"{mlflow_url}/api/2.0/mlflow/experiments/search",
-        json={"filter": f"name = '{experiment_name}'", "max_results": 1},
-    )
-
-    if resp.status_code == 200:
-        experiments = resp.json().get("experiments", [])
-        if experiments:
-            return experiments[0].get("experiment_id")
-
-    # Crée l'expérience si elle n'existe pas
-    resp = requests.post(
-        f"{mlflow_url}/api/2.0/mlflow/experiments/create",
-        json={"name": experiment_name},
-    )
-
-    if resp.status_code == 200:
-        return resp.json().get("experiment", {}).get("experiment_id")
-
-    # Si erreur, afficher le message
-    print(f"Error: {resp.status_code} - {resp.text}")
-    raise Exception(f"Cannot find or create experiment: {experiment_name}")
-
-
-def create_run(mlflow_url: str, experiment_name: str) -> str:
-    """Crée un run via l'API REST et retourne le run_id."""
-    exp_id = get_or_create_experiment(mlflow_url, experiment_name)
-    print(f"Using experiment_id: {exp_id}")
-
-    resp = requests.post(
-        f"{mlflow_url}/api/2.0/mlflow/runs/create", json={"experiment_id": exp_id}
-    )
-
-    # Debug: afficher la réponse
-    print(f"Create run response status: {resp.status_code}")
-    print(f"Create run response body: {resp.json()}")
-
-    run_id = resp.json().get("run", {}).get("info", {}).get("run_id")
-    if not run_id:
-        raise Exception(f"Failed to get run_id from response: {resp.json()}")
-    return run_id
-
-
-def log_param(mlflow_url: str, run_id: str, key: str, value: str):
-    """Log un paramètre via l'API REST."""
-    print(f"Logging param: {key}={value} for run_id: {run_id}")
-    resp = requests.post(
-        f"{mlflow_url}/api/2.0/mlflow/runs/log-parameter",
-        json={"run_id": run_id, "key": key, "value": str(value)},
-    )
-    print(f"Log param response: {resp.status_code} - {resp.text}")
-    if resp.status_code != 200:
-        print(f"Error logging param {key}: {resp.status_code} - {resp.text}")
-
-
-def log_metric(mlflow_url: str, run_id: str, key: str, value: float):
-    """Log une métrique via l'API REST."""
-    print(f"Logging metric: {key}={value} for run_id: {run_id}")
-    resp = requests.post(
-        f"{mlflow_url}/api/2.0/mlflow/runs/log-metric",
-        json={"run_id": run_id, "metric": {"key": key, "value": value, "step": 0}},
-    )
-    print(f"Log metric response: {resp.status_code} - {resp.text}")
-    if resp.status_code != 200:
-        print(f"Error logging metric {key}: {resp.status_code} - {resp.text}")
-
-
-def end_run(mlflow_url: str, run_id: str, status: str = "FINISHED"):
-    """Termine un run via l'API REST."""
-    resp = requests.post(
-        f"{mlflow_url}/api/2.0/mlflow/runs/update",
-        json={"run_id": run_id, "status": status},
-    )
-    if resp.status_code != 200:
-        print(f"Error ending run: {resp.status_code} - {resp.text}")
-
-
 def parse_args():
     parser = argparse.ArgumentParser(
-        description="Check MLflow server and data directory"
+        description="Check MLflow server and data directory (v2)"
     )
 
     parser.add_argument(
@@ -124,75 +46,135 @@ def parse_args():
         help="Nom de l'expérimentation (défaut: Projet 06 - OpenClassrooms)",
     )
 
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Activer les logs détaillés",
+    )
+
     return parser.parse_args()
 
 
-def setup_logging(level: str):
-    logging.basicConfig(
-        level=getattr(logging, level),
-        format="%(asctime)s | %(levelname)s | %(message)s",
-    )
-
-
-def check_mlflow(url: str) -> bool:
+def check_mlflow(client: MlflowClient) -> bool:
+    """Vérifie si le serveur MLflow est accessible."""
     try:
-        logging.debug(f"Vérification de {url}/health")
-        response = requests.get(f"{url}/health", timeout=3)
-
-        if response.status_code == 200:
-            logging.info("MLflow est en ligne ✅")
-            return True
-        else:
-            logging.error(f"MLflow répond mais code inattendu: {response.status_code}")
-            return False
-
-    except requests.exceptions.RequestException as e:
-        logging.error(f"MLflow inaccessible ❌ : {e}")
+        client.get_experiment_by_name("test")
+        logging.info("MLflow est en ligne")
+        return True
+    except Exception as e:
+        logging.error(f"MLflow inaccessible: {e}")
         return False
+
+
+def get_or_create_experiment(client: MlflowClient, experiment_name: str) -> str:
+    """Récupère ou crée une expérience et retourne l'experiment_id."""
+    exp = client.get_experiment_by_name(experiment_name)
+
+    if exp:
+        logging.info(f"Expérience trouvée: {exp.experiment_id}")
+        return exp.experiment_id
+
+    exp_id = client.create_experiment(experiment_name)
+    logging.info(f"Expérience créée: {exp_id}")
+    return exp_id
+
+
+def check_data_directory(data_dir: Path) -> dict:
+    """Vérifie le répertoire de données et retourne les infos."""
+    raw_files = []
+    processed_files = []
+
+    if not data_dir.exists():
+        logging.warning("Le dossier data n'existe pas.")
+        return {"exists": False, "raw_files": [], "processed_files": []}
+
+    logging.info("Dossier data trouvé")
+
+    raw_dir = data_dir / "raw"
+    if raw_dir.exists():
+        raw_files = [f.name for f in raw_dir.glob("*.csv")]
+
+    processed_dir = data_dir / "processed"
+    if processed_dir.exists():
+        processed_files = [f.name for f in processed_dir.glob("*.csv")]
+
+    return {
+        "exists": True,
+        "raw_files": raw_files,
+        "raw_count": len(raw_files),
+        "processed_files": processed_files,
+        "processed_count": len(processed_files),
+    }
 
 
 def main():
     args = parse_args()
 
+    logging.basicConfig(
+        level=logging.DEBUG if args.verbose else logging.INFO,
+        format="%(asctime)s | %(levelname)s | %(message)s",
+    )
+
     mlflow_url = args.mlflow_url.rstrip("/")
     data_dir = Path(args.data_dir).expanduser().resolve()
     experiment_name = args.experiment_name
-    raw_files = []
 
-    logging.info(f"MLFLOW_URL : {mlflow_url}")
-    logging.info(f"DATA_DIR   : {data_dir}")
-    logging.info(f"EXPERIMENT_NAME   : {experiment_name}")
+    logging.info(f"MLFLOW_URL: {mlflow_url}")
+    logging.info(f"DATA_DIR: {data_dir}")
+    logging.info(f"EXPERIMENT_NAME: {experiment_name}")
 
-    if not check_mlflow(mlflow_url):
+    client = MlflowClient(tracking_uri=mlflow_url)
+
+    if not check_mlflow(client):
         sys.exit(1)
 
-    if not data_dir.exists():
-        logging.warning("Le dossier data n'existe pas.")
-    else:
-        logging.info("Dossier data trouvé ✅")
-        raw_dir = data_dir / "raw"
-        raw_files = [f.name for f in raw_dir.glob("*.csv")]
+    data_info = check_data_directory(data_dir)
 
-    # Log via REST API
-    run_id = create_run(mlflow_url, experiment_name)
+    exp_id = get_or_create_experiment(client, experiment_name)
 
-    log_param(mlflow_url, run_id, "mlflow_url", mlflow_url)
-    log_param(mlflow_url, run_id, "data_dir", str(data_dir))
-    log_param(mlflow_url, run_id, "experiment_name", experiment_name)
-    log_param(mlflow_url, run_id, "data_exists", str(data_dir.exists()))
+    run = client.create_run(exp_id)
+    run_id = run.info.run_id
+    logging.info(f"Run créé: {run_id}")
 
-    end_run(mlflow_url, run_id, "FINISHED")
+    client.log_param(run_id, "mlflow_url", mlflow_url)
+    client.log_param(run_id, "data_dir", str(data_dir))
+    client.log_param(run_id, "experiment_name", experiment_name)
+    client.log_param(run_id, "data_exists", str(data_info["exists"]))
 
-    # Retourne les infos
+    if data_info["exists"]:
+        client.log_metric(run_id, "raw_files_count", data_info["raw_count"])
+        client.log_metric(run_id, "processed_files_count", data_info["processed_count"])
+
+        if data_info["raw_files"]:
+            artifact_content = json.dumps(
+                {
+                    "raw_files": data_info["raw_files"],
+                    "processed_files": data_info["processed_files"],
+                },
+                indent=2,
+            )
+
+            with tempfile.NamedTemporaryFile(
+                mode="w", suffix=".json", delete=False
+            ) as f:
+                f.write(artifact_content)
+                client.log_artifact(run_id, f.name, artifact_path="data_files")
+                
+            client.log_text(run_id, artifact_content, "data_files/config.json")
+            #Path(f.name).unlink()
+
+    client.set_terminated(run_id, status="FINISHED")
+    logging.info(f"Run terminé: {run_id}")
+
     result = {
         "mlflow_url": mlflow_url,
         "data_dir": str(data_dir),
         "experiment_name": experiment_name,
-        "raw_files": raw_files,
-        "raw_files_count": len(raw_files),
         "run_id": run_id,
+        "data_info": data_info,
     }
 
+    print(json.dumps(result, indent=2))
     return result
 
 
