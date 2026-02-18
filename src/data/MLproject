@@ -1,0 +1,14 @@
+name: preprocess_pipeline
+
+conda_env: conda.yaml
+
+entry_points:
+  main:
+    parameters:
+      data_dir: {type: string, default: "~/data"}
+      output_filename: {type: string, default: "application_train_processed.parquet"}
+      
+    command: >
+      python preprocess.py 
+      --data_dir {data_dir} 
+      --output_filename {output_filename}

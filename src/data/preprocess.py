@@ -1,3 +1,4 @@
+import sys
 import pandas as pd
 from pathlib import Path
 
@@ -17,6 +18,7 @@ def load_application_train(data_dir=None):
     else:
         data_dir = Path(data_dir)
 
+    print(f"data_dir: {data_dir}")
     raw_dir = data_dir / "raw"
 
     file_path = raw_dir / "application_train.csv"
@@ -26,24 +28,6 @@ def load_application_train(data_dir=None):
 
     print(f"Shape: {df.shape}")
     print(f"Mémoire: {df.memory_usage(deep=True).sum() / 1024**2:.2f} MB")
-
-    return df
-
-
-def load_application_test(data_dir=None):
-    """
-    Charge les données de test depuis application_test.csv
-    """
-    if data_dir is None:
-        data_dir = Path.home() / "data"
-    else:
-        data_dir = Path(data_dir)
-
-    raw_dir = data_dir / "raw"
-    file_path = raw_dir / "application_test.csv"
-
-    df = pd.read_csv(file_path)
-    print(f"Test shape: {df.shape}")
 
     return df
 
@@ -115,7 +99,7 @@ def save_processed_data(
     df: pd.DataFrame,
     filename: str = "application_train_processed.parquet",
     data_dir=None,
-) -> str:
+    ) -> str:
     """
     Sauvegarde le DataFrame traité au format parquet
 
@@ -145,17 +129,35 @@ def save_processed_data(
     return str(file_path)
 
 
-if __name__ == "__main__":
-    # Test
-    df = load_application_train()
-    print(f"\n=== Avant preprocessing ===")
+def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Preprocessing pipeline")
+    parser.add_argument(
+        "--data_dir", type=str, default="~/data", help="Répertoire des données"
+    )
+    parser.add_argument(
+        "--output_filename",
+        type=str,
+        default="application_train_processed.parquet",
+        help="Nom du fichier de sortie",
+    )
+    args = parser.parse_args()
+
+    print(f"\n=== Chargement des données === {args.data_dir}")
+    df = load_application_train(data_dir=args.data_dir)
     print(f"Shape: {df.shape}")
     print(f"Valeurs manquantes: {df.isnull().sum().sum()}")
 
+    print(f"\n=== Preprocessing ===")
     df = preprocess_data(df)
-    print(f"\n=== Après preprocessing ===")
     print(f"Shape: {df.shape}")
     print(f"Valeurs manquantes: {df.isnull().sum().sum()}")
 
-    # Sauvegarde au format parquet
-    save_processed_data(df, "application_train_processed.parquet")
+    print(f"\n=== Sauvegarde ===")
+    save_processed_data(df, filename=args.output_filename, data_dir=args.data_dir)
+    print("Terminé!")
+
+
+if __name__ == "__main__":
+    main()
