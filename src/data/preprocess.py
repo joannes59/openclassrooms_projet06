@@ -3,6 +3,50 @@ import pandas as pd
 from pathlib import Path
 
 
+# Colonnes pertinentes pour le modèle de scoring
+SELECTED_COLUMNS = [
+    "SK_ID_CURR",  # Clé primaire
+    "TARGET",  # Variable cible (1 = défaut, 0 = remboursé)
+    # Informations financières
+    "AMT_CREDIT",  # Montant du crédit
+    "AMT_INCOME_TOTAL",  # Revenu total
+    "AMT_ANNUITY",  # Mensualité
+    # Informations temporelles
+    "DAYS_BIRTH",  # Age en jours
+    "DAYS_EMPLOYED",  # Années d'emploi en jours
+    # Scores externes (très prédictifs)
+    "EXT_SOURCE_1",  # Score externe 1
+    "EXT_SOURCE_2",  # Score externe 2
+    "EXT_SOURCE_3",  # Score externe 3
+]
+
+
+def select_columns(df: pd.DataFrame, columns: list = None) -> pd.DataFrame:
+    """
+    Sélectionne les colonnes pertinentes pour le modèle
+
+    Args:
+        df: DataFrame d'entrée
+        columns: Liste des colonnes à garder (défaut: SELECTED_COLUMNS)
+
+    Returns:
+        DataFrame avec uniquement les colonnes sélectionnées
+    """
+    if columns is None:
+        columns = SELECTED_COLUMNS
+
+    # Vérifie que les colonnes existent
+    available_cols = [col for col in columns if col in df.columns]
+    missing_cols = [col for col in columns if col not in df.columns]
+
+    if missing_cols:
+        print(f"Colonnes manquantes: {missing_cols}")
+
+    print(f"Sélection de {len(available_cols)} colonnes: {available_cols}")
+
+    return df[available_cols]
+
+
 def load_application_train(data_dir=None):
     """
     Charge les données principales depuis application_train.csv
@@ -99,7 +143,7 @@ def save_processed_data(
     df: pd.DataFrame,
     filename: str = "application_train_processed.parquet",
     data_dir=None,
-    ) -> str:
+) -> str:
     """
     Sauvegarde le DataFrame traité au format parquet
 
@@ -142,12 +186,23 @@ def main():
         default="application_train_processed.parquet",
         help="Nom du fichier de sortie",
     )
+    parser.add_argument(
+        "--full_dataset",
+        action="store_true",
+        help="Garder toutes les colonnes (défaut: sélection des colonnes pertinentes)",
+    )
     args = parser.parse_args()
 
     print(f"\n=== Chargement des données === {args.data_dir}")
     df = load_application_train(data_dir=args.data_dir)
     print(f"Shape: {df.shape}")
     print(f"Valeurs manquantes: {df.isnull().sum().sum()}")
+
+    # Sélection des colonnes pertinentes
+    if not args.full_dataset:
+        print(f"\n=== Sélection des colonnes ===")
+        df = select_columns(df)
+        print(f"Shape: {df.shape}")
 
     print(f"\n=== Preprocessing ===")
     df = preprocess_data(df)
