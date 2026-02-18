@@ -5,6 +5,7 @@ description = "MLflow demonstration"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "catboost>=1.2.9",
     "jupyter>=1.1.1",
     "matplotlib>=3.10.8",
     "mlflow>=3.9.0",
