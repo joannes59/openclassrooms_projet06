@@ -1,7 +1,7 @@
 import sys
 import pandas as pd
 from pathlib import Path
-
+import argparse
 
 # Colonnes pertinentes pour le modèle de scoring
 SELECTED_COLUMNS = [
@@ -174,7 +174,7 @@ def save_processed_data(
 
 
 def main():
-    import argparse
+    
 
     parser = argparse.ArgumentParser(description="Preprocessing pipeline")
     parser.add_argument(
