@@ -201,6 +201,7 @@ def get_target_table(df_field_describ):
         raise ValueError("PRIMARY KEY must be only once.")
     
     target_primary = result.iloc[0]    
+    
     return target_table, target_primary
     
 
@@ -213,7 +214,26 @@ def compute_KHI2(dataframes_dic, df_field_describ):
             df_field_describ[field] = ""
             
     # Get target table
+    # Exemple de dataframe
+    df = pd.DataFrame({
+        "X1": [0, 1, 1, 0, 1, 0, 1, 0],
+        "X2": [1, 0, 1, 0, 0, 1, 1, 0],
+        "y":  [0, 1, 1, 0, 1, 0, 1, 0]
+    })
     
+    # Choix de la variable à tester
+    var = "X1" # voir ["X1", "X2"]
+    target = "y"
+    
+    # Tableau de contingence
+    table = pd.crosstab(df[var], df[target])
+    print(table)
+    
+    # Test du Chi2
+    chi2, p, dof, expected = chi2_contingency(table)
+    
+    print("Chi2 =", chi2)
+    print("p-value =", p)
     
 if __name__ == "__main__":
     
