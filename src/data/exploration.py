@@ -122,12 +122,28 @@ def assign_target(df_field_describ, target_name="TARGET", target_table=""):
             if target_table != "" and row["table"] != target_table:
                 continue
             df_field_describ.at[index, "key"] = "TARGET"
-
     return df_field_describ
 
 
+def get_mcd(df_field_describ):
+    """ Return the MCD to construct group by """
+
+    # Filter
+    IS_TARGET = (df_field_describ["key"] == "TARGET")
+    IS_PRIMARY = (df_field_describ["key"] == "PRIMARY")
+    IS_FOREIGN = (df_field_describ["key"] == "FOREIGN")
+    
+    
+    # Table
+    df_field_describ.loc[(NO_CATEG & IS_TARGET), "categ"]
+    
+    tables = df_field_describ["table"].unique().tolist()
+
+    mcd = {}
+    
+    
 def assign_key(df_field_describ):
-    """function to assign the database key of column:  PRIMARY, FOREIGN"""
+    """ function to assign the database key of column:  PRIMARY, FOREIGN """
     primary_keys = []
 
     for index, row in df_field_describ.iterrows():
@@ -145,7 +161,7 @@ def assign_key(df_field_describ):
 
 
 def assign_category(df_field_describ):
-    """function to assign the data category of column:  BINARY, NUMERIC, CATEGORY,"""
+    """ function to assign the data category of column:  BINARY, NUMERIC, CATEGORY,"""
 
     # add filed on df_field_describ
     for field in ['categ', 'categ_value']:
@@ -182,6 +198,15 @@ def assign_category(df_field_describ):
             df_field_describ.loc[(mask), "categ"] = row["categ"]
         
     return df_field_describ
+
+def assign_category_value(df_field_describ, dataframes_dic):
+    """ define the first value of binary to int 1 """
+    # Filter
+    NO_CATEG_VALUE = (df_field_describ["categ_value"] == "_")
+    IS_BINARY = (df_field_describ["categ"] == "BINARY")
+    
+    
+    
 
 def get_target_table(df_field_describ):
     """ return the table and his primary key with the target """
@@ -231,7 +256,16 @@ def compute_KHI2(dataframes_dic, df_field_describ):
     
     # Test du Chi2
     chi2, p, dof, expected = chi2_contingency(table)
-    
+    binary_cols = ["X1", "X2", "X3"]
+results = []
+
+for col in binary_cols:
+    table = pd.crosstab(df[col], df["y"])
+    chi2, p, _, _ = chi2_contingency(table)
+    results.append({"variable": col, "chi2": chi2, "p_value": p})
+
+chi2_df = pd.DataFrame(results)
+print(chi2_df)
     print("Chi2 =", chi2)
     print("p-value =", p)
     
