@@ -12,7 +12,7 @@ FILE_EXTENSION = "csv"
 
 
 def get_config():
-    """return configuration variable"""
+    """return configuration variables"""
     config = {
         "table_describ": TABLE_DESCRIBE,
         "force_table_describ": TABLE_MANUAL_DESCRIBE,
@@ -23,7 +23,7 @@ def get_config():
 
 
 def csv_to_dataframe():
-    """return a dictionnary of dataframe from files in repertorie 'raw' of data_path"""
+    """return a dictionnary of dataframe from files in directory 'raw' of data_path"""
     config = get_config()
     dataframes_dic = {}
     data_path = config["data_dir"] + "/raw"
@@ -48,7 +48,7 @@ def describe_field(df, table_name, origin="original"):
             "table": table_name,
             "dtype": df.dtypes.values,
             "origin": origin,
-            "key": "",  # PRIMARY, FOREIGN
+            "key": "_",  # PRIMARY, FOREIGN
             "level": 0,
             "nb_row": nb_row,
             "unique": df.nunique(),
@@ -64,7 +64,7 @@ def describe_field(df, table_name, origin="original"):
     return df_field_describ
 
 
-def create_describe_field(dataframes_dic):
+def create_describe_file(dataframes_dic):
     """create the dataframe description
     Input: {dataframe_name: dataframe, ...}
     Output: text format csv
@@ -85,7 +85,7 @@ def create_describe_field(dataframes_dic):
     df_describ.to_csv(config["data_dir"] + "/" + config["table_describ"], index=False)
 
 
-def load_describe_field():
+def load_describe_file():
     """load the description file to dataframe"""
     config = get_config()
     df_field_describ = pd.read_csv(config["data_dir"] + "/" + config["table_describ"])
@@ -109,7 +109,7 @@ def load_force_describe_field():
     return df_force_field_describ
 
 
-def save_describe_field(df_field_describ):
+def save_describe_file(df_field_describ):
     """load the description file to dataframe"""
     config = get_config()
     path_field_describ = config["data_dir"] + "/" + config["table_describ"]
@@ -124,6 +124,11 @@ def assign_target(df_field_describ, target_name="TARGET", target_table=""):
                 continue
             df_field_describ.at[index, "key"] = "TARGET"
     return df_field_describ
+
+def get_target_name(df_field_describ):
+    """ get the name of the the target """
+    target_name = str(df_field_describ.loc[(df_field_describ["key"] == "TARGET"), "name"].iloc[0])
+    return target_name
 
 
 def get_mcd(df_field_describ):
@@ -189,6 +194,7 @@ def get_mcd(df_field_describ):
                     mcd[row["table"]] = {"target": "", "level": level, "foreign_name": foreign_name, "foreign_table": foreign_table}
     return mcd
                 
+
 def assign_level(df_field_describ):
     """ Save the level of group by with the MCD """
     mcd = get_mcd(df_field_describ)
@@ -199,6 +205,7 @@ def assign_level(df_field_describ):
         
     return df_field_describ
     
+
 def assign_key(df_field_describ):
     """ function to assign the database key of column:  PRIMARY, FOREIGN """
     primary_keys = []
@@ -215,13 +222,21 @@ def assign_key(df_field_describ):
     return df_field_describ
 
 
+def add_field_describe(df_field_describ, field_list=[], default_value=""):
+    """ add column on df_field_describ if not exist
+        return new df_field_describ """
+    for field in field_list:
+        if field not in df_field_describ.columns:
+            df_field_describ[field] = default_value
+            
+    return df_field_describ
+
+
 def assign_category(df_field_describ):
     """ function to assign the data category of column:  BINARY, NUMERIC, CATEGORY,"""
 
-    # add filed on df_field_describ
-    for field in ['categ', 'categ_value']:
-        if field not in df_field_describ.columns:
-            df_field_describ[field] = "_"
+    # add fields on df_field_describ
+    df_field_describ = add_field_describe(df_field_describ, ['categ', 'categ_value'], "_" )
 
     # Filter
     NO_CATEG = (df_field_describ["categ"] == "_")
@@ -271,7 +286,6 @@ def assign_category_value(df_field_describ, dataframes_dic):
     return df_field_describ
         
 
-
 def get_target_table(df_field_describ):
     """ return the table with the target and his primary key """
     
@@ -292,52 +306,66 @@ def get_target_table(df_field_describ):
     target_primary = result.iloc[0]    
     
     return target_table, target_primary
+
     
+def get_y_by_table(dataframes_dic, df_field_describ, table):
+    """ return the y dataframe serie by table, return void dataframe if not possible """
+    # Get the description of table : MCD
+    mcd = get_mcd(df_field_describ)
+    target_name = get_target_name(df_field_describ)
+    
+    if not mcd.get(table):
+        # table is not in the mcd analyse, TODO, only 1 level deep merge at this time
+        y = pd.DataFrame()
+        
+    elif mcd[table].get("level", 0) == 1:
+        y = dataframes_dic[table][mcd[table]["target"]]
+        
+    elif mcd[table].get("level", 0) == 2:
+        # create target link with merge table
+
+        y = dataframes_dic[table].merge(
+            dataframes_dic[mcd[table]["foreign_table"]][[target_name, mcd[table]["foreign_name"]]],
+            left_on=mcd[table]["foreign_name"],
+            right_on=mcd[table]["foreign_name"],
+            how='left'
+        )[target_name]
+        
+    else:
+        y = pd.DataFrame()
+        
+    return y
+
+def get_dic_table_by_filter(df_field_describ, df_filter):
+    """ return dic with table and columns by dataframe filter """
+    
+    update_name = df_field_describ.loc[df_filter, ["name","table"]]
+    
+    # Group by table
+    table_update = {}
+    for index, row in update_name.iterrows():
+        if row["table"] not in list(table_update.keys()):
+            table_update[row["table"]] = []
+        table_update[row["table"]].append(row["name"])
+        
+    return table_update
 
 def compute_KHI2(dataframes_dic, df_field_describ):
     """ compute KI2 and save p-value on df_field_describ """
     
-    # add field on df_field_describ if not exist
-    for field in ['p_value']:
-        if field not in df_field_describ.columns:
-            df_field_describ[field] = 0.0
-            
-    # Get the description of table : MCD
-    mcd = get_mcd(df_field_describ)
-    target_name = str(df_field_describ.loc[(df_field_describ["key"] == "TARGET"), "name"].iloc[0])
-
+    # add field p_value on df_field_describ
+    df_field_describ = add_field_describe(df_field_describ, ['p_value'], 0.0 )
+     
     # Select the binary field with no p_value
     IS_KHI2 = (df_field_describ["categ"].isin(["BINARY", "CATEGORICAL"]))
     NO_P_VALUE = (df_field_describ["p_value"] == 0.0)
-    update_khi2 = df_field_describ.loc[(IS_KHI2 & NO_P_VALUE), ["name","table"]]
-    
-    # Group by table
-    table_update_khi2 = {}
-    for index, row in update_khi2.iterrows():
-        if row["table"] not in list(table_update_khi2.keys()):
-            table_update_khi2[row["table"]] = []
-        table_update_khi2[row["table"]].append(row["name"])
+    table_update_khi2 = get_dic_table_by_filter(df_field_describ, (IS_KHI2 & NO_P_VALUE))
         
     # compute KHI2 by table
     for table in list(table_update_khi2.keys()):
-
-        if not mcd.get(table):
-            # table is not in the mcd analyse, TODO, only 1 level deep merge at this time
-            continue
-        elif mcd[table].get("level", 0) == 1:
-            y = dataframes_dic[table][mcd[table]["target"]]
-            
-        elif mcd[table].get("level", 0) == 2:
-            # create target link with merge table
-
-            y = dataframes_dic[table].merge(
-                dataframes_dic[mcd[table]["foreign_table"]][[target_name, mcd[table]["foreign_name"]]],
-                left_on=mcd[table]["foreign_name"],
-                right_on=mcd[table]["foreign_name"],
-                how='left'
-            )[target_name]
-            
-        else:
+        
+        y = get_y_by_table(dataframes_dic, df_field_describ, table)
+        if y.empty:
             continue
         
         for name in table_update_khi2[table]:
@@ -348,55 +376,33 @@ def compute_KHI2(dataframes_dic, df_field_describ):
             chi2, p, _, _ = chi2_contingency(crosstab)
 
             update_mask = ((df_field_describ["table"] == table) & (df_field_describ["name"] == name))
-            df_field_describ.loc[update_mask, "p_value"] = int(100 * p) or 1
+            df_field_describ.loc[update_mask, "p_value"] = round(p, 4) or 0.0001
             
     return df_field_describ
+
 
 def compute_corr(dataframes_dic, df_field_describ):
     """ compute correlation and save on df_field_describ """
     
-    # add field on df_field_describ if not exist
-    for field in ['correlation']:
-        if field not in df_field_describ.columns:
-            df_field_describ[field] = 0.0
-            
-    # Get the description of table : MCD
-    mcd = get_mcd(df_field_describ)
-    target_name = str(df_field_describ.loc[(df_field_describ["key"] == "TARGET"), "name"].iloc[0])
+    # add fields on df_field_describ
+    df_field_describ = add_field_describe(df_field_describ, ['correlation'], 0.0 )
+    
+    target_name = get_target_name(df_field_describ)
 
-    # Select the binary field with no p_value
+    # Select the field with no correlation
     IS_NUMERIC = (df_field_describ["categ"] == "NUMERIC")
     IS_BINARY = (df_field_describ["categ"] == "BINARY")
     NO_CORR = (df_field_describ["correlation"] == 0.0)
-    update_corr = df_field_describ.loc[((IS_NUMERIC | IS_BINARY) & NO_CORR), ["name","table"]]
-
-    # Group by table
-    table_update_corr = {}
-    for index, row in update_corr.iterrows():
-
-        if row["table"] not in list(table_update_corr.keys()):
-            table_update_corr[row["table"]] = []
-        table_update_corr[row["table"]].append(row["name"])
+    
+    table_update_corr = get_dic_table_by_filter(df_field_describ, ((IS_NUMERIC | IS_BINARY) & NO_CORR))
         
     
     # compute Correlation by table
     for table in list(table_update_corr.keys()):
 
-        if not mcd.get(table):
-            # table is not in the mcd analyse, TODO, only 1 level deep merge at this time
+        y = get_y_by_table(dataframes_dic, df_field_describ, table)
+        if y.empty:
             continue
-        elif mcd[table].get("level", 0) == 2:
-            # create target link with merge table
-
-            y = dataframes_dic[table].merge(
-                dataframes_dic[mcd[table]["foreign_table"]][[target_name, mcd[table]["foreign_name"]]],
-                left_on=mcd[table]["foreign_name"],
-                right_on=mcd[table]["foreign_name"],
-                how='left'
-            )[target_name]
-            
-        else:
-            y = dataframes_dic[table][mcd[table]["target"]]
         
         for name in table_update_corr[table]:
             if name == target_name:
@@ -423,7 +429,7 @@ def compute_corr(dataframes_dic, df_field_describ):
             value = correlation_matrix.loc[target_name, name]
             
             update_mask = ((df_field_describ["table"] == table) & (df_field_describ["name"] == name))                
-            df_field_describ.loc[update_mask, "correlation"] = value
+            df_field_describ.loc[update_mask, "correlation"] = round(value, 4)
             
             
     return df_field_describ
@@ -432,17 +438,17 @@ def compute_corr(dataframes_dic, df_field_describ):
 if __name__ == "__main__":
     
     dataframes_dic = csv_to_dataframe()
-    create_describe_field(dataframes_dic)
+    #create_describe_file(dataframes_dic)
     
     
-    df_field_describ = load_describe_field()
-    df_field_describ = assign_target(df_field_describ)
-    df_field_describ = assign_key(df_field_describ)
-    df_field_describ = assign_level(df_field_describ)
-    df_field_describ = assign_category(df_field_describ)
-    df_field_describ = assign_category_value(df_field_describ, dataframes_dic)
+    df_field_describ = load_describe_file()
+    #df_field_describ = assign_target(df_field_describ)
+    #df_field_describ = assign_key(df_field_describ)
+    #df_field_describ = assign_level(df_field_describ)
+    #df_field_describ = assign_category(df_field_describ)
+    #df_field_describ = assign_category_value(df_field_describ, dataframes_dic)
     df_field_describ = compute_KHI2(dataframes_dic, df_field_describ)
     df_field_describ = compute_corr(dataframes_dic, df_field_describ)
       
-    save_describe_field(df_field_describ)
+    save_describe_file(df_field_describ)
 
