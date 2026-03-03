@@ -73,23 +73,21 @@ Par défaut, les données sont stockées dans le répertoire utilisateur :
 ```text
 ~/data/               # Données du projet
 ├── raw/             # Données brutes non traitées
-└── processed/       # Données nettoyées et prêtes pour le pipeline
+├── processed/       # Données nettoyées et prêtes pour le pipeline
+└── describe_column.csv  # Description des colonnes des dataframes
 ```
 
 ### Structure du code source
 ```text
 ├── main.py                     # Point d'entrée principal de l'application
 ├── notebooks/                  # EDA (Analyse Exploratoire) et prototypage
-│   ├── Initiez-vous au MLOps 1.ipynb
-│   └── dataframes_fields_analyse.xlsx
+│   ├── Initiez-vous au MLOps 1-01 MLflow.ipynb
+│   ├── Initiez-vous au MLOps 1-02 exploration.ipynb
+│   └── Initiez-vous au MLOps 1-03 training.ipynb
 ├── src/                        # Code source
 │   ├── data/                   # Scripts de traitement des données
-│   │   └── preprocess.py
-│   ├── features/               # Construction de pipelines
-│   │   └── build_pipeline.py
-│   ├── training/               # Scripts d'entraînement des modèles
-│   │   └── train.py
-│   ├── inference/              # Scripts d'inférence (à implémenter)
+│   │   ├── preprocess.py       # Prétraitement des données
+│   │   └── exploration.py      # Analyse exploratoire et description des colonnes
 │   └── mlflow/                 # Scripts et configuration MLflow
 │       ├── check_mlflow.py     # Vérification du serveur MLflow via API REST
 │       ├── MLproject           # Configuration MLproject pour mlflow run
