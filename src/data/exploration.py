@@ -284,28 +284,6 @@ def assign_category_value(df_field_describ, dataframes_dic):
         df_field_describ.loc[update_mask, "categ_value"] = first_value
         
     return df_field_describ
-        
-
-def get_target_table(df_field_describ):
-    """ return the table with the target and his primary key """
-    
-    result = df_field_describ.loc[(df_field_describ["key"] == "TARGET"), "table"]
-    
-    if len(result) != 1:
-        raise ValueError("TARGET must be only once.")
-        
-    target_table = result.iloc[0]    
-    
-    result = df_field_describ.loc[
-        ((df_field_describ["key"] == "PRIMARY") & (df_field_describ["table"] == target_table)), 
-        "name"]
-    
-    if len(result) != 1:
-        raise ValueError("PRIMARY KEY must be only once.")
-    
-    target_primary = result.iloc[0]    
-    
-    return target_table, target_primary
 
     
 def get_y_by_table(dataframes_dic, df_field_describ, table):
@@ -336,6 +314,7 @@ def get_y_by_table(dataframes_dic, df_field_describ, table):
         
     return y
 
+
 def get_dic_table_by_filter(df_field_describ, df_filter):
     """ return dic with table and columns by dataframe filter """
     
@@ -349,6 +328,7 @@ def get_dic_table_by_filter(df_field_describ, df_filter):
         table_update[row["table"]].append(row["name"])
         
     return table_update
+
 
 def compute_KHI2(dataframes_dic, df_field_describ):
     """ compute KI2 and save p-value on df_field_describ """
@@ -392,13 +372,17 @@ def compute_corr(dataframes_dic, df_field_describ):
     # Select the field with no correlation
     IS_NUMERIC = (df_field_describ["categ"] == "NUMERIC")
     IS_BINARY = (df_field_describ["categ"] == "BINARY")
+    IS_CATEGORICAL = (df_field_describ["categ"] == "CATEGORICAL")
     NO_CORR = (df_field_describ["correlation"] == 0.0)
     
-    table_update_corr = get_dic_table_by_filter(df_field_describ, ((IS_NUMERIC | IS_BINARY) & NO_CORR))
+    table_update_corr = get_dic_table_by_filter(
+        df_field_describ,
+        ((IS_NUMERIC | IS_BINARY | IS_CATEGORICAL) & NO_CORR)
+        )
         
-    
     # compute Correlation by table
     for table in list(table_update_corr.keys()):
+        print('-------table---------', table)
 
         y = get_y_by_table(dataframes_dic, df_field_describ, table)
         if y.empty:
@@ -410,26 +394,25 @@ def compute_corr(dataframes_dic, df_field_describ):
             
             FILTER_NAME = ((df_field_describ["table"] == table) & (df_field_describ["name"] == name))
             categ = df_field_describ.loc[FILTER_NAME, ["categ", "categ_value", "dtype"]].iloc[0].to_dict()
-
-            if categ["categ"] == "BINARY" and categ["categ_value"] != "_":
-                if categ["dtype"] == "object":
-                    x = (dataframes_dic[table][name] == categ["categ_value"]).astype(int)
-                elif "float" in categ["dtype"]:
-                    x = (dataframes_dic[table][name] == float(categ["categ_value"])).astype(int)
-                elif "int" in categ["dtype"]:
-                    x = (dataframes_dic[table][name] == int(categ["categ_value"])).astype(int)
-                else:
-                    continue
-            else:
-                x = dataframes_dic[table][name]
-                
-            df = pd.concat([y, x], axis=1)
-        
-            correlation_matrix = df.corr()
-            value = correlation_matrix.loc[target_name, name]
             
-            update_mask = ((df_field_describ["table"] == table) & (df_field_describ["name"] == name))                
-            df_field_describ.loc[update_mask, "correlation"] = round(value, 4)
+            x = dataframes_dic[table][name]
+            df = pd.concat([y, x], axis=1)
+            
+            if categ["categ"] == "NUMERIC":
+                correlation_matrix = df.corr()
+                corr = correlation_matrix.loc[target_name, name]
+                df_field_describ.loc[FILTER_NAME, "correlation"] = round(corr, 4)
+                
+            else:
+                # For Categorical column, get the max correlation of each correlation value
+                dummies = pd.get_dummies(df[name], drop_first=False)
+                corr_with_target = dummies.corrwith(df[target_name])
+                
+                max_corr_value = corr_with_target.abs().idxmax()
+                max_corr = corr_with_target.loc[max_corr_value]
+                            
+                df_field_describ.loc[FILTER_NAME, "correlation"] = round(max_corr, 4)
+                df_field_describ.loc[FILTER_NAME, "categ_value"] = max_corr_value
             
             
     return df_field_describ

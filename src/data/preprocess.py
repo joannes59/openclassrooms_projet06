@@ -4,21 +4,10 @@ from pathlib import Path
 import argparse
 
 # Colonnes pertinentes pour le modèle de scoring
-SELECTED_COLUMNS = [
-    "SK_ID_CURR",  # Clé primaire
-    "TARGET",  # Variable cible (1 = défaut, 0 = remboursé)
-    # Informations financières
-    "AMT_CREDIT",  # Montant du crédit
-    "AMT_INCOME_TOTAL",  # Revenu total
-    "AMT_ANNUITY",  # Mensualité
-    # Informations temporelles
-    "DAYS_BIRTH",  # Age en jours
-    "DAYS_EMPLOYED",  # Années d'emploi en jours
-    # Scores externes (très prédictifs)
-    "EXT_SOURCE_1",  # Score externe 1
-    "EXT_SOURCE_2",  # Score externe 2
-    "EXT_SOURCE_3",  # Score externe 3
-]
+SELECTED_COLUMNS = ['TARGET', 'EXT_SOURCE_3', 'EXT_SOURCE_2', 'EXT_SOURCE_1', 'DAYS_BIRTH', 'NAME_INCOME_TYPE', 'NAME_EDUCATION_TYPE', 
+                    'DAYS_LAST_PHONE_CHANGE', 'CODE_GENDER', 'DAYS_ID_PUBLISH', 'REG_CITY_NOT_WORK_CITY',  'REGION_RATING_CLIENT_W_CITY', 
+                    'REGION_RATING_CLIENT', 'FLAG_EMP_PHONE', 'ORGANIZATION_TYPE', 'DAYS_EMPLOYED', 'REG_CITY_NOT_LIVE_CITY', 'FLAG_DOCUMENT_3', 
+                    'FLOORSMAX_AVG', 'FLOORSMAX_MEDI', 'FLOORSMAX_MODE', 'OCCUPATION_TYPE']
 
 
 def select_columns(df: pd.DataFrame, columns: list = None) -> pd.DataFrame:
@@ -135,7 +124,7 @@ def preprocess_data(df: pd.DataFrame) -> pd.DataFrame:
     Pipeline complet de preprocessing
     """
     df = remove_duplicates(df)
-    df = handle_missing_values(df)
+    #df = handle_missing_values(df)
     return df
 
 
